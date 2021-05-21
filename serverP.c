@@ -26,6 +26,7 @@ typedef struct{
 } client_t;
 
 client_t *clients[MAX_CLIENTS];
+char msg_buffer[2048];
 
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -69,7 +70,6 @@ void queue_add(client_t *cl){
 /* Remove clients to queue */
 void queue_remove(int uid){
 	pthread_mutex_lock(&clients_mutex);
-
 	for(int i=0; i < MAX_CLIENTS; ++i){
 		if(clients[i]){
 			if(clients[i]->uid == uid){
@@ -78,14 +78,14 @@ void queue_remove(int uid){
 			}
 		}
 	}
-
+	
 	pthread_mutex_unlock(&clients_mutex);
 }
 
 /* Send message to all clients except sender */
-void send_message(char *s, int uid){
+void send_message(char *s, int uid, int flag){
 	pthread_mutex_lock(&clients_mutex);
-
+	if(flag == 0){
 	for(int i=0; i<MAX_CLIENTS; ++i){
 		if(clients[i]){
 			if(clients[i]->uid != uid){
@@ -96,16 +96,44 @@ void send_message(char *s, int uid){
 			}
 		}
 	}
-
+}if(flag == 1){
+		for(int i=0; i<MAX_CLIENTS; ++i){
+		if(clients[i]){
+			if(clients[i]->uid == uid){
+				if(write(clients[i]->sockfd, s, strlen(s)) < 0){
+					perror("ERROR: write to descriptor failed");
+					break;
+				}
+			}
+		}
+	}
+}
+	
 	pthread_mutex_unlock(&clients_mutex);
+}
+
+list_of_clients(int uid){
+	char usuarios[2048];
+	char espaco[2] = "\n";
+	char aux_send[2048];
+	for(int i=0; i<2048; ++i)
+	teste[i] = NULL;
+	for(int i=0; i<MAX_CLIENTS; ++i){
+		if(clients[i]){
+				strcat(usuarios,clients[i]->name);+
+				strcat(usuarios,espaco);
+				}
+			}
+	sprintf(aux_send, "Usuarios Online: \n %s",usuarios);
+	send_message(aux_send, uid, 1);
 }
 
 /* Handle all communication with the client */
 void *handle_client(void *arg){
 	char buff_out[BUFFER_SZ];
 	char name[32];
+	char msg_send[2048];
 	int leave_flag = 0;
-
 	cli_count++;
 	client_t *cli = (client_t *)arg;
 
@@ -115,9 +143,13 @@ void *handle_client(void *arg){
 		leave_flag = 1;
 	} else{
 		strcpy(cli->name, name);
+
 		sprintf(buff_out, "%s has joined\n", cli->name);
 		printf("%s", buff_out);
-		send_message(buff_out, cli->uid);
+		send_message(buff_out, cli->uid, 0);
+		list_of_clients(cli->uid);
+		sprintf(msg_send,"Mensagens Antigas \n %s",msg_buffer);
+		send_message(msg_send, cli->uid, 1);
 	}
 
 	bzero(buff_out, BUFFER_SZ);
@@ -130,15 +162,16 @@ void *handle_client(void *arg){
 		int receive = recv(cli->sockfd, buff_out, BUFFER_SZ, 0);
 		if (receive > 0){
 			if(strlen(buff_out) > 0){
-				send_message(buff_out, cli->uid);
+				send_message(buff_out, cli->uid, 0);
 
 				str_trim_lf(buff_out, strlen(buff_out));
-				printf("%s -> %s\n", buff_out, cli->name);
+				printf("%s\n", buff_out);
+				strcat(msg_buffer, buff_out);
 			}
 		} else if (receive == 0 || strcmp(buff_out, "exit") == 0){
 			sprintf(buff_out, "%s has left\n", cli->name);
 			printf("%s", buff_out);
-			send_message(buff_out, cli->uid);
+			send_message(buff_out, cli->uid, 0);
 			leave_flag = 1;
 		} else {
 			printf("ERROR: -1\n");

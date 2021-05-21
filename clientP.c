@@ -53,7 +53,7 @@ void send_msg_handler() {
     }
 
 		bzero(message, LENGTH);
-    bzero(buffer, LENGTH + 32);
+    	bzero(buffer, LENGTH + 32);
   }
   catch_ctrl_c_and_exit(2);
 }

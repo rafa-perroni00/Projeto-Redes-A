@@ -117,10 +117,10 @@ list_of_clients(int uid){
 	char espaco[2] = "\n";
 	char aux_send[2048];
 	for(int i=0; i<2048; ++i)
-	teste[i] = NULL;
+	usuarios[i] = NULL;
 	for(int i=0; i<MAX_CLIENTS; ++i){
 		if(clients[i]){
-				strcat(usuarios,clients[i]->name);+
+				strcat(usuarios,clients[i]->name);
 				strcat(usuarios,espaco);
 				}
 			}
@@ -148,7 +148,7 @@ void *handle_client(void *arg){
 		printf("%s", buff_out);
 		send_message(buff_out, cli->uid, 0);
 		list_of_clients(cli->uid);
-		sprintf(msg_send,"Mensagens Antigas \n %s",msg_buffer);
+		sprintf(msg_send,"Mensagens Antigas: \n %s",msg_buffer);
 		send_message(msg_send, cli->uid, 1);
 	}
 
@@ -158,7 +158,7 @@ void *handle_client(void *arg){
 		if (leave_flag) {
 			break;
 		}
-
+			char espaco[2] = "\n";
 		int receive = recv(cli->sockfd, buff_out, BUFFER_SZ, 0);
 		if (receive > 0){
 			if(strlen(buff_out) > 0){
@@ -167,6 +167,7 @@ void *handle_client(void *arg){
 				str_trim_lf(buff_out, strlen(buff_out));
 				printf("%s\n", buff_out);
 				strcat(msg_buffer, buff_out);
+				strcat(msg_buffer, espaco);
 			}
 		} else if (receive == 0 || strcmp(buff_out, "exit") == 0){
 			sprintf(buff_out, "%s has left\n", cli->name);

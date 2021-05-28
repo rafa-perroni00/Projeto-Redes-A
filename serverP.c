@@ -98,7 +98,7 @@ void send_message(message mensagemtratada, int flag){
 	for(int i=0; i<MAX_CLIENTS; ++i){
 		if(clients[i]){
 			if(strcmp(clients[i]->name, mensagemtratada.nome)!= 0){
-				if(write(clients[i]->sockfd, (char *)&mensagemtratada, strlen(mensagemtratada)) < 0){
+				if(write(clients[i]->sockfd, (char *)&mensagemtratada, strlen((char *)&mensagemtratada)) < 0){
 					perror("ERROR: write to descriptor failed");
 					break;
 				}
@@ -109,7 +109,7 @@ void send_message(message mensagemtratada, int flag){
 		for(int i=0; i<MAX_CLIENTS; ++i){
 		if(clients[i]){
 			if(strcmp(clients[i]->name, mensagemtratada.destinatario)== 0){
-				if(write(clients[i]->sockfd, (char *)&mensagemtratada, strlen(mensagemtratada)) < 0){
+				if(write(clients[i]->sockfd, (char *)&mensagemtratada, strlen((char *)&mensagemtratada)) < 0){
 					perror("ERROR: write to descriptor failed");
 					break;
 				}
@@ -121,7 +121,10 @@ void send_message(message mensagemtratada, int flag){
 	pthread_mutex_unlock(&clients_mutex);
 }
 
-list_of_clients(int uid){
+void list_of_clients(char* nome){
+	message lista;
+	lista.nome = "SERVER";
+	strcpy(lista.destinatario, nome);
 	char usuarios[2048];
 	char espaco[2] = "\n";
 	char aux_send[2048];
@@ -134,7 +137,8 @@ list_of_clients(int uid){
 				}
 			}
 	sprintf(aux_send, "Usuarios Online: \n %s",usuarios);
-	send_message(aux_send, uid, 1);
+	strcpy(lista.message, aux_send);
+	send_message(lista, 1);
 }
 
 /* Handle all communication with the client */
@@ -156,7 +160,7 @@ void *handle_client(void *arg){
 
 		sprintf(buff_out, "%s has joined\n", cli->name);
 		printf("%s", buff_out);
-		msgserver.destinatario = NULL;
+		bzero(msgserver.destinatario, 32);
 		msgserver.nome = "SERVER";
 		strcpy(msgserver.message,buff_out);
 		send_message(msgserver, 0);
@@ -166,7 +170,7 @@ void *handle_client(void *arg){
 		strcpy(msgserver.message, msg_send);
 		send_message(msgserver, 1);
 	}
-
+	bzero(msgserver.destinatario, 32);
 	bzero(buff_out, BUFFER_SZ);
 
 	while(1){

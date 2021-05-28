@@ -46,7 +46,7 @@ void catch_ctrl_c_and_exit(int sig) {
 
 void send_msg_handler() {
 	message mensagemtratada;
-	mensagemtratada.nome = nome;
+	strcpy(mensagemtratada.nome, name);
   char mensagem[LENGTH] = {};
 	char buffer[LENGTH + 32] = {};
 
@@ -63,14 +63,14 @@ void send_msg_handler() {
 			fgets(mensagemtratada.destinatario, 32, stdin);
 			printf("Para %s: ",mensagemtratada.nome);
 			fgets(mensagemtratada.message,LENGTH,stdin);
-			printf("De $s para %s: %s",nome,mensagemtratada.nome,mensagemtratada.message);
+			printf("De $s para %s: %s",name,mensagemtratada.nome,mensagemtratada.message);
 		}
 		else{
-			mensagemtratada.destinatario = NULL;
-			mensagemtratada.message = mensagem;
+			bzero(mensagemtratada.destinatario, 32);
+			strcpy(mensagemtratada.message, mensagem);
 		}
       
-      send(sockfd, (char *)&mensagemtratada, strlen(mensagemtratada), 0);
+      send(sockfd, (char *)&mensagemtratada, strlen((char *)&mensagemtratada), 0);
     }
 		bzero(mensagem, LENGTH);
 		bzero(mensagemtratada.message, LENGTH);
@@ -80,10 +80,10 @@ void send_msg_handler() {
 }
 
 void recv_msg_handler() {
-	char message[LENGTH] = {};
+	char mensagem[LENGTH] = {};
 	message mensagemtratada;
   while (1) {
-		int receive = recv(sockfd, mensagemtratada, RCVLENGTH, 0);
+		int receive = recv(sockfd, (char *)&mensagemtratada, RCVLENGTH, 0);
     if (receive > 0) {
       printf("De %s: %s", mensagemtratada.nome, mensagemtratada.message);
       str_overwrite_stdout();
@@ -92,7 +92,7 @@ void recv_msg_handler() {
     } else {
 			// -1
 		}
-		memset(message, 0, sizeof(message));
+		memset(mensagem, 0, sizeof(mensagem));
   }
 }
 

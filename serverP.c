@@ -162,7 +162,9 @@ void *handle_client(void *arg){
 		send_message(msgserver, 0);
 		list_of_clients(cli->uid);
 		sprintf(msg_send,"Mensagens Antigas: \n %s",msg_buffer); //**
-		send_message(msg_send, cli->uid, 1);
+		strcpy(msgserver.destinatario, name);
+		strcpy(msgserver.message, msg_send);
+		send_message(msgserver, 1);
 	}
 
 	bzero(buff_out, BUFFER_SZ);

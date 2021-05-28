@@ -13,6 +13,7 @@
 
 #define MAX_CLIENTS 100
 #define BUFFER_SZ 2048
+#define MSG_SZ 2172
 
 static _Atomic unsigned int cli_count = 0;
 static int uid = 10;
@@ -24,6 +25,14 @@ typedef struct{
 	int uid;
 	char name[32];
 } client_t;
+
+typedef struct 
+{
+	char nome[32];
+	char destinatario[32];
+	char message[2048];
+}message;
+
 
 client_t *clients[MAX_CLIENTS];
 char msg_buffer[2048];
@@ -83,13 +92,13 @@ void queue_remove(int uid){
 }
 
 /* Send message to all clients except sender */
-void send_message(char *s, int uid, int flag){
+void send_message(message mensagemtratada, int flag){
 	pthread_mutex_lock(&clients_mutex);
 	if(flag == 0){
 	for(int i=0; i<MAX_CLIENTS; ++i){
 		if(clients[i]){
-			if(clients[i]->uid != uid){
-				if(write(clients[i]->sockfd, s, strlen(s)) < 0){
+			if(strcmp(clients[i]->name, mensagemtratada.nome)!= 0){
+				if(write(clients[i]->sockfd, (char *)&mensagemtratada, strlen(mensagemtratada)) < 0){
 					perror("ERROR: write to descriptor failed");
 					break;
 				}
@@ -99,8 +108,8 @@ void send_message(char *s, int uid, int flag){
 }if(flag == 1){
 		for(int i=0; i<MAX_CLIENTS; ++i){
 		if(clients[i]){
-			if(clients[i]->uid == uid){
-				if(write(clients[i]->sockfd, s, strlen(s)) < 0){
+			if(strcmp(clients[i]->name, mensagemtratada.destinatario)== 0){
+				if(write(clients[i]->sockfd, (char *)&mensagemtratada, strlen(mensagemtratada)) < 0){
 					perror("ERROR: write to descriptor failed");
 					break;
 				}
@@ -130,6 +139,7 @@ list_of_clients(int uid){
 
 /* Handle all communication with the client */
 void *handle_client(void *arg){
+	message msgserver, msgclient;
 	char buff_out[BUFFER_SZ];
 	char name[32];
 	char msg_send[2048];
@@ -146,9 +156,12 @@ void *handle_client(void *arg){
 
 		sprintf(buff_out, "%s has joined\n", cli->name);
 		printf("%s", buff_out);
-		send_message(buff_out, cli->uid, 0);
+		msgserver.destinatario = NULL;
+		msgserver.nome = "SERVER";
+		strcpy(msgserver.message,buff_out);
+		send_message(msgserver, 0);
 		list_of_clients(cli->uid);
-		sprintf(msg_send,"Mensagens Antigas: \n %s",msg_buffer);
+		sprintf(msg_send,"Mensagens Antigas: \n %s",msg_buffer); //**
 		send_message(msg_send, cli->uid, 1);
 	}
 
@@ -159,10 +172,13 @@ void *handle_client(void *arg){
 			break;
 		}
 			char espaco[2] = "\n";
-		int receive = recv(cli->sockfd, buff_out, BUFFER_SZ, 0);
+		int receive = recv(cli->sockfd, (char *)&msgclient , MSG_SZ, 0);
 		if (receive > 0){
 			if(strlen(buff_out) > 0){
-				send_message(buff_out, cli->uid, 0);
+				if(msgclient.destinatario == NULL)
+				send_message(msgclient , 0);
+				else
+				send_message(msgclient, 1);
 
 				str_trim_lf(buff_out, strlen(buff_out));
 				printf("%s\n", buff_out);
@@ -172,7 +188,8 @@ void *handle_client(void *arg){
 		} else if (receive == 0 || strcmp(buff_out, "exit") == 0){
 			sprintf(buff_out, "%s has left\n", cli->name);
 			printf("%s", buff_out);
-			send_message(buff_out, cli->uid, 0);
+			strcpy(msgserver.message,buff_out);
+			send_message(msgserver, 0);
 			leave_flag = 1;
 		} else {
 			printf("ERROR: -1\n");
@@ -180,6 +197,10 @@ void *handle_client(void *arg){
 		}
 
 		bzero(buff_out, BUFFER_SZ);
+		bzero(msgclient.message, BUFFER_SZ);
+		bzero(msgclient.nome, 32);
+		bzero(msgclient.destinatario, 32);
+		bzero(msgserver.message, BUFFER_SZ);
 	}
 
   /* Delete client from queue and yield thread */

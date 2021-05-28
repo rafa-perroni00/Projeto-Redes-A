@@ -11,6 +11,14 @@
 #include <pthread.h>
 
 #define LENGTH 2048
+#define RCVLENGTH 2172
+
+typedef struct 
+{
+	char nome[32];
+	char destinatario[32];
+	char message[LENGTH];
+}message;
 
 // Global variables
 volatile sig_atomic_t flag = 0;
@@ -37,33 +45,47 @@ void catch_ctrl_c_and_exit(int sig) {
 }
 
 void send_msg_handler() {
-  char message[LENGTH] = {};
+	message mensagemtratada;
+	mensagemtratada.nome = nome;
+  char mensagem[LENGTH] = {};
 	char buffer[LENGTH + 32] = {};
 
   while(1) {
   	str_overwrite_stdout();
-    fgets(message, LENGTH, stdin);
-    str_trim_lf(message, LENGTH);
+    fgets(mensagem, LENGTH, stdin);
+    str_trim_lf(mensagem, LENGTH);
 
-    if (strcmp(message, "exit") == 0) {
+    if (strcmp(mensagem, "exit") == 0) {
 			break;
     } else {
-      sprintf(buffer, "%s: %s\n", name, message);
-      send(sockfd, buffer, strlen(buffer), 0);
+		if(strcmp(mensagem, "/r")==0){
+			printf("Destinatario: ");
+			fgets(mensagemtratada.destinatario, 32, stdin);
+			printf("Para %s: ",mensagemtratada.nome);
+			fgets(mensagemtratada.message,LENGTH,stdin);
+			printf("De $s para %s: %s",nome,mensagemtratada.nome,mensagemtratada.message);
+		}
+		else{
+			mensagemtratada.destinatario = NULL;
+			mensagemtratada.message = mensagem;
+		}
+      
+      send(sockfd, (char *)&mensagemtratada, strlen(mensagemtratada), 0);
     }
-
-		bzero(message, LENGTH);
-    	bzero(buffer, LENGTH + 32);
+		bzero(mensagem, LENGTH);
+		bzero(mensagemtratada.message, LENGTH);
+    	bzero(mensagemtratada.destinatario, 32);
   }
   catch_ctrl_c_and_exit(2);
 }
 
 void recv_msg_handler() {
 	char message[LENGTH] = {};
+	message mensagemtratada;
   while (1) {
-		int receive = recv(sockfd, message, LENGTH, 0);
+		int receive = recv(sockfd, mensagemtratada, RCVLENGTH, 0);
     if (receive > 0) {
-      printf("%s", message);
+      printf("De %s: %s", mensagemtratada.nome, mensagemtratada.message);
       str_overwrite_stdout();
     } else if (receive == 0) {
 			break;

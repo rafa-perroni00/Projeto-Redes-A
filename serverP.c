@@ -123,7 +123,7 @@ void send_message(message mensagemtratada, int flag){
 
 void list_of_clients(char* nome){
 	message lista;
-	lista.nome = "SERVER";
+	lista.nome[32] = "SERVER";
 	strcpy(lista.destinatario, nome);
 	char usuarios[2048];
 	char espaco[2] = "\n";
@@ -161,7 +161,7 @@ void *handle_client(void *arg){
 		sprintf(buff_out, "%s has joined\n", cli->name);
 		printf("%s", buff_out);
 		bzero(msgserver.destinatario, 32);
-		msgserver.nome = "SERVER";
+		msgserver.nome[32] = "SERVER";
 		strcpy(msgserver.message,buff_out);
 		send_message(msgserver, 0);
 		list_of_clients(cli->uid);

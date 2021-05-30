@@ -27,6 +27,7 @@ typedef struct{
 
 client_t *clients[MAX_CLIENTS];
 char msg_buffer[2048];
+char usuarios_off[2048] = "\nLista de Usuarios Offline:";
 
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -70,9 +71,13 @@ void queue_add(client_t *cl){
 /* Remove clients to queue */
 void queue_remove(int uid){
 	pthread_mutex_lock(&clients_mutex);
+	char espaco[2] = "\n";
 	for(int i=0; i < MAX_CLIENTS; ++i){
 		if(clients[i]){
 			if(clients[i]->uid == uid){
+				strcat(usuarios_off,espaco);
+				strcat(usuarios_off,clients[i]->name);
+				
 				clients[i] = NULL;
 				break;
 			}
@@ -113,6 +118,7 @@ void send_message(char *s, int uid, int flag){
 }
 
 list_of_clients(int uid){
+
 	char usuarios[2048];
 	char espaco[2] = "\n";
 	char aux_send[2048];
@@ -124,8 +130,11 @@ list_of_clients(int uid){
 				strcat(usuarios,espaco);
 				}
 			}
+		strcat(usuarios,usuarios_off);
+	
 	sprintf(aux_send, "Usuarios Online: \n %s",usuarios);
 	send_message(aux_send, uid, 1);
+	
 }
 
 /* Handle all communication with the client */
@@ -148,7 +157,7 @@ void *handle_client(void *arg){
 		printf("%s", buff_out);
 		send_message(buff_out, cli->uid, 0);
 		list_of_clients(cli->uid);
-		sprintf(msg_send,"Mensagens Antigas: \n %s",msg_buffer);
+		sprintf(msg_send,"\n\n\nMensagens Antigas \n %s",msg_buffer);
 		send_message(msg_send, cli->uid, 1);
 	}
 
@@ -158,7 +167,7 @@ void *handle_client(void *arg){
 		if (leave_flag) {
 			break;
 		}
-			char espaco[2] = "\n";
+		char espaco[2] = "\n";
 		int receive = recv(cli->sockfd, buff_out, BUFFER_SZ, 0);
 		if (receive > 0){
 			if(strlen(buff_out) > 0){
@@ -167,7 +176,7 @@ void *handle_client(void *arg){
 				str_trim_lf(buff_out, strlen(buff_out));
 				printf("%s\n", buff_out);
 				strcat(msg_buffer, buff_out);
-				strcat(msg_buffer, espaco);
+				strcat(msg_buffer,espaco);
 			}
 		} else if (receive == 0 || strcmp(buff_out, "exit") == 0){
 			sprintf(buff_out, "%s has left\n", cli->name);
